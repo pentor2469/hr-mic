@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🎤 พูดแทนพิมพ์ · HR-ORCA</title>
+<style>
+  :root{--brand:#003781;--bg:#f2f6fb}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Sarabun","Leelawadee UI",Tahoma,sans-serif;background:var(--bg);color:#1c2b3a;display:flex;flex-direction:column;height:100vh;padding:14px;gap:10px}
+  h1{font-size:16px;margin:0;color:var(--brand)}
+  #st{font-size:14px;color:#56677a;min-height:20px}
+  #txt{flex:1;width:100%;font-size:18px;line-height:1.5;padding:10px;border:1px solid #c9d6e6;border-radius:12px;resize:none;font-family:inherit}
+  .row{display:flex;gap:8px}
+  button{flex:1;font-size:16px;padding:12px;border-radius:12px;border:0;cursor:pointer;font-family:inherit}
+  #mic{background:#d62d2d;color:#fff}
+  #mic.off{background:var(--brand)}
+  #send{background:#17924b;color:#fff}
+  #cancel{background:#e3e9f1;color:#1c2b3a;flex:.6}
+</style>
+</head>
+<body>
+<h1>🎤 พูดแทนพิมพ์ · HR-ORCA</h1>
+<div id="st">กำลังเปิดไมค์…</div>
+<textarea id="txt" placeholder="ข้อความที่พูดจะขึ้นตรงนี้ · แก้ไขได้ก่อนกดส่ง"></textarea>
+<div class="row">
+  <button id="mic">⏹ หยุดฟัง</button>
+  <button id="send">✅ ใส่ข้อความ</button>
+  <button id="cancel">ปิด</button>
+</div>
+<script>
+// หน้าเสริมสำหรับแอป HR-ORCA (ปุ่ม 🎤 บนคอม) · ไม่เก็บข้อมูลใด ๆ · ส่งข้อความกลับไปที่หน้าต่างแอปที่เปิดหน้านี้เท่านั้น
+(function(){
+  var q=new URLSearchParams(location.search), id=q.get('id')||'';
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  var st=document.getElementById('st'), txt=document.getElementById('txt'), mic=document.getElementById('mic');
+  var rec=null, base='', on=false;
+  function setOn(v){ on=v; mic.textContent=v?'⏹ หยุดฟัง':'🎤 ฟังต่อ'; mic.classList.toggle('off',!v); }
+  function start(){
+    if(!SR){ st.textContent='⚠️ เบราว์เซอร์นี้ไม่รองรับ · ใช้ Chrome หรือ Edge'; setOn(false); return; }
+    rec=new SR(); rec.lang='th-TH'; rec.continuous=true; rec.interimResults=true; base=txt.value;
+    rec.onresult=function(e){ var t=''; for(var i=0;i<e.results.length;i++) t+=e.results[i][0].transcript; txt.value=(base?base+' ':'')+t; };
+    rec.onerror=function(e){ st.textContent=e.error==='not-allowed'?'⚠️ ยังไม่ได้อนุญาตไมค์ · กดรูปกุญแจ/ไมค์บนแถบที่อยู่ แล้วเลือก "อนุญาต"':'⚠️ ไมค์มีปัญหา ('+e.error+') · กด 🎤 ฟังต่อ'; };
+    rec.onend=function(){ setOn(false); if(st.textContent.indexOf('⚠️')<0) st.textContent='หยุดฟังแล้ว · แก้ข้อความได้ แล้วกด ✅ ใส่ข้อความ'; };
+    try{ rec.start(); setOn(true); st.textContent='🔴 กำลังฟัง… พูดได้เลย (ภาษาไทย)'; }catch(e){ st.textContent='⚠️ เปิดไมค์ไม่ได้'; setOn(false); }
+  }
+  mic.onclick=function(){ if(on&&rec){ rec.stop(); } else start(); };
+  document.getElementById('send').onclick=function(){
+    if(rec) try{rec.stop()}catch(e){}
+    var t=txt.value.trim();
+    if(window.opener){ window.opener.postMessage({type:'hr-orca-mic', id:id, text:t}, '*'); window.close(); }
+    else { st.textContent='⚠️ ไม่พบหน้าแอป · คัดลอกข้อความไปวางเองได้'; txt.select(); }
+  };
+  document.getElementById('cancel').onclick=function(){ if(rec) try{rec.stop()}catch(e){} window.close(); };
+  start();
+})();
+</script>
+</body>
+</html>
